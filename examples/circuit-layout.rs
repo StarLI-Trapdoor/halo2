@@ -2,10 +2,10 @@ use halo2::{
     arithmetic::FieldExt,
     circuit::{Cell, Layouter, Region, SimpleFloorPlanner},
     dev::CircuitLayout,
-    pasta::Fp,
-    plonk::{Advice, Circuit, Column, ConstraintSystem, Error, Fixed, TableColumn},
+    plonk::{Advice, Circuit, Column, ConstraintSystem, Error, Fixed},
     poly::Rotation,
 };
+use pairing::bn256::Fr as Fp;
 use plotters::prelude::*;
 use std::marker::PhantomData;
 

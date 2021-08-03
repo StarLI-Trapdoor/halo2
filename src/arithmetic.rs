@@ -5,7 +5,7 @@ use super::multicore;
 pub use ff::Field;
 use group::Group as _;
 
-pub use pasta_curves::arithmetic::*;
+pub use pairing::arithmetic::*;
 
 /// Extension trait for iterators over mutable field elements which allows those
 /// field elements to be inverted in a batch.
@@ -438,7 +438,7 @@ pub fn lagrange_interpolate<F: FieldExt>(points: &[F], evals: &[F]) -> Vec<F> {
 }
 
 #[cfg(test)]
-use crate::pasta::Fp;
+use pairing::bn256::Fr as Fp;
 
 #[test]
 fn test_lagrange_interpolate() {
