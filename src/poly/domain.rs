@@ -540,6 +540,24 @@ impl<G: Group> EvaluationDomain<G> {
             omega: &self.omega,
         }
     }
+
+    /// Evaluatates sparse polynomial at a point where given input values are very first elements of lagrange coeff polynomial
+    pub fn sparse_polynomial_evaluation(
+        &self,
+        point: G::Scalar,
+        inputs: Vec<G::Scalar>,
+    ) -> G::Scalar {
+        let m = inputs.len();
+        assert!(self.n as usize >= m);
+        let mut acc = G::Scalar::zero();
+        let point_n = point.pow_vartime(&[self.n, 0, 0, 0]);
+        for i in 0..m {
+            let ii = i as i32;
+            let l_i_eval = self.l_i_range(point, point_n, ii..(ii + 1))[0];
+            acc = acc + inputs[i] * l_i_eval;
+        }
+        acc
+    }
 }
 
 /// Represents the minimal parameters that determine an `EvaluationDomain`.
@@ -613,4 +631,37 @@ fn test_l_i() {
         assert_eq!(eval_polynomial(&l[i][..], x), evaluations[7 + i]);
         assert_eq!(eval_polynomial(&l[(8 - i) % 8][..], x), evaluations[7 - i]);
     }
+}
+
+#[test]
+fn test_sparse_polynomial_evaluation() {
+    use crate::arithmetic::eval_polynomial;
+    use crate::pasta::pallas::Scalar;
+
+    let domain = EvaluationDomain::<Scalar>::new(1, 2);
+
+    let input = vec![
+        Scalar::from_u64(11),
+        Scalar::from_u64(12),
+        // Scalar::from_u64(13),
+        // Scalar::from_u64(14),
+    ];
+
+    let n = domain.n as usize;
+    let m = input.len();
+    let zeta = Scalar::from_u64(100);
+
+    let input_eval = domain.sparse_polynomial_evaluation(zeta, input.clone());
+
+    let mut input_eval_expected = Scalar::zero();
+    for i in 0..m {
+        let mut l_i = vec![Scalar::zero(); n];
+        l_i[i] = Scalar::one();
+        let l_i_x = domain.lagrange_from_vec(l_i);
+        let l_i = domain.lagrange_to_coeff(l_i_x);
+        let l_i_eval = eval_polynomial(&l_i.values, zeta);
+        input_eval_expected = input_eval_expected + input[i] * l_i_eval;
+    }
+
+    assert_eq!(input_eval, input_eval_expected);
 }
