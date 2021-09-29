@@ -23,7 +23,8 @@ fn bench_with_k(name: &str, k: u32, c: &mut Criterion) {
         0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
         0xe5,
     ]);
-    let (params, verfier_params) = Setup::<Bn256>::new(k, &mut rng);
+    let params = Setup::<Bn256>::new(k, &mut rng);
+    let verifier_params = Setup::<Bn256>::verifier_params(&params, 0).unwrap();
 
     #[derive(Clone)]
     struct PlonkConfig {
@@ -290,7 +291,7 @@ fn bench_with_k(name: &str, k: u32, c: &mut Criterion) {
             let msm = params.empty_msm();
             let mut transcript = Blake2bRead::<_, _, Challenge255<_>>::init(&proof[..]);
             let _ =
-                verify_proof(&verfier_params, pk.get_vk(), msm, &[&[]], &mut transcript).unwrap();
+                verify_proof(&verifier_params, pk.get_vk(), msm, &[&[]], &mut transcript).unwrap();
         });
     });
 }

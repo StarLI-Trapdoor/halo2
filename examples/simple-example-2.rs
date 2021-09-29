@@ -42,6 +42,7 @@ trait StandardCs<FF: FieldExt> {
 struct MyCircuit<F: FieldExt> {
     a: Option<F>,
     zero: Option<F>,
+    k: u32,
 }
 
 struct StandardPlonk<F: FieldExt> {
@@ -168,7 +169,7 @@ impl<F: FieldExt> Circuit<F> for MyCircuit<F> {
         Self {
             a: None,
             zero: None,
-            // k: self.k,
+            k: self.k,
         }
     }
 
@@ -214,8 +215,7 @@ impl<F: FieldExt> Circuit<F> for MyCircuit<F> {
     fn synthesize(&self, config: PlonkConfig, mut layouter: impl Layouter<F>) -> Result<(), Error> {
         let cs = StandardPlonk::new(config);
 
-        // for i in 0..(1 << (self.k - 1)) {
-        for _ in 0..10 {
+        for _ in 0..(1 << (self.k - 1) - 3) {
             let mut a_squared = None;
             let (a0, _, c0) = cs.raw_multiply(&mut layouter, || {
                 a_squared = self.a.map(|a| a.square());
@@ -241,15 +241,28 @@ impl<F: FieldExt> Circuit<F> for MyCircuit<F> {
     }
 }
 
+use std::env;
 fn main() {
     use rand::SeedableRng;
     use rand_xorshift::XorShiftRng;
-    let k = 5;
+
+    let K_NUM: u32 = if let Ok(num) = env::var("K_NUM") {
+         if let Ok(num) = num.parse() {
+             num
+         } else {
+             8
+         }
+     } else {
+         8
+     };
+
+    let k = K_NUM;
     let public_inputs_size = 0;
 
     let empty_circuit: MyCircuit<Fp> = MyCircuit {
         a: None,
         zero: None,
+        k
     };
 
     // Initialize the polynomial commitment parameters
@@ -268,13 +281,19 @@ fn main() {
     let circuit: MyCircuit<Fp> = MyCircuit {
         a: Some(Fp::from_u64(5)),
         zero: Some(Fp::zero()),
+        k
     };
 
     // Create a proof
     let mut transcript = Blake2bWrite::<_, _, Challenge255<_>>::init(vec![]);
 
+    use std::time::{Duration, Instant};
+    let _dur = Instant::now();
+
     create_proof(&params, &pk, &[circuit], &[&[]], &mut transcript)
         .expect("proof generation should not fail");
+
+    println!("proving period: {:?}", _dur.elapsed());
 
     let proof = transcript.finalize();
 
